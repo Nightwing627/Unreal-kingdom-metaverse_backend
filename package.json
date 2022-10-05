@@ -1,0 +1,54 @@
+{
+  "name": "cayc_unrealkingdom_back",
+  "version": "1.0.0",
+  "description": "Cyber Ape Yacht Club Unreal Kingdom backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "dev": "nodemon app.js"
+  },
+  "author": "Alex",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/"
+  },
+  "bugs": {
+    "url": "https://github.com/"
+  },
+  "homepage": "https://cayc.io/",
+  "dependencies": {
+    "@moralisweb3/core": "^2.4.0",
+    "@moralisweb3/evm-api": "^2.4.0",
+    "@moralisweb3/evm-utils": "^2.4.0",
+    "axios": "^0.27.2",
+    "body-parser": "^1.19.0",
+    "connect": "^3.7.0",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.0.0",
+    "dotenv": "^8.2.0",
+    "errorhandler": "^1.5.1",
+    "ethereumjs-util": "^7.1.5",
+    "ethers": "^5.6.4",
+    "express": "^4.17.1",
+    "express-jwt": "^5.3.1",
+    "express-session": "^1.17.0",
+    "http-status": "^1.4.2",
+    "jsonwebtoken": "^8.5.1",
+    "method-override": "^3.0.0",
+    "methods": "^1.1.2",
+    "moment": "^2.26.0",
+    "mongoose": "^5.9.4",
+    "mongoose-unique-validator": "^2.0.3",
+    "moralis": "^2.4.0",
+    "morgan": "^1.9.1",
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0",
+    "uuid": "^7.0.2",
+    "wallet-address-validator": "^0.2.4"
+  },
+  "devDependencies": {
+    "eslint": "^7.0.0",
+    "nodemon": "^2.0.19"
+  }
+}
