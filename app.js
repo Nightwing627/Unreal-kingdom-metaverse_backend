@@ -8,6 +8,7 @@ const app = express();
 
 // *** --- support HTTP version of app  ---
 const http = require("http");
+const createError = require("http-errors");
 
 // *** --- support mongoose for database connect ---
 const mongoose = require("mongoose");
@@ -62,13 +63,6 @@ app.use(passport.session());
 // *** --- import API routes ---
 app.use(require("./routes"));
 
-// *** --- catch 404 and forward to the errorhandler ---
-app.use(function (req, res, next) {
-    const err = new Error("Not Found 404");
-    err.status = 404;
-    next(err);
-});
-
 // *** --- connect to the database and track errors if in dev mode ---
 mongoose.connect(
     process.env.DB_CLOUD_CONNECTION,
@@ -88,17 +82,21 @@ if (process.env.DB_CONNECTION === "dev") {
     app.use(errorhandler());
 }
 
-// *** --- retrieve error message ---
-app.use(function (err, req, res) {
-    console.log(err.status);
-    res.status(err.status || 500);
-    res.json({
-        error: {
-            message: err.message,
-            error: err,
-        },
-    });
-});
+// *** --- catch 404 and forward to the errorhandler ---
+app.use(function (req, res, next) {
+    next(createError(404))
+})
+
+// error handler
+app.use(function (err, req, res, next) {
+    // set locals, only providing error in development
+    res.locals.message = err.message
+    res.locals.error = req.app.get("env") === "development" ? err : {}
+
+    // render the error page
+    res.status(err.status || 500)
+    res.render("error")
+})
 
 console.log(`port is ${process.env.PORT}`, )
 console.log(`API base is ${process.env.REACT_APP_API_URL}`)
