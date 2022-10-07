@@ -100,5 +100,9 @@ app.use(function (err, req, res) {
     });
 });
 
+console.log(`port is ${process.env.PORT}`, )
+console.log(`API base is ${process.env.REACT_APP_API_URL}`)
+console.log(`DB connection is ${process.env.DB_CLOUD_CONNECTION}`)
+
 //*** --- binds and listens for connections on the specific host and port ---
 http.createServer(app).listen(process.env.PORT);
