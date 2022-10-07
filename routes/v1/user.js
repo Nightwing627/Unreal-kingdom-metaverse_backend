@@ -14,7 +14,7 @@ const axios = require('axios').default;
 require("dotenv/config");
 
 // *** --- signup request ---
-router.post("/signup", async function (req, res, next) {
+router.post("/signup", async function (req, res, next) {z
     const { name, email, password } = req.body;
 
     // check request fields
