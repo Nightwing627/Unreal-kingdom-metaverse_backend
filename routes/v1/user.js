@@ -24,29 +24,37 @@ router.post("/signup", async function (req, res, next) {
         });
     }
 
-    // retrieve user information by user email
-    const user = await UserSchema.findOne({
-        email: email,
-    });
-
-    // register new user if user is not existing
-    if (user) {
-        return res.status(403).json({
-            msg: "user is already exisiting",
+    try {
+        // retrieve user information by user email
+        const user = await UserSchema.findOne({
+            email: email,
         });
-    } else {
-        let newbie = new UserSchema({ name: name, email: email });
-        newbie.setPassword(password);
-        await newbie.save().then(function () {
-            return res.status(200).json({
-                msg: "new user added",
-            })
-        }).catch(function (err) {
-            return res.status(400).json({
-                msg: 'validation error - try another information',
+
+        // register new user if user is not existing
+        if (user) {
+            return res.status(403).json({
+                msg: "user is already exisiting",
             });
+        } else {
+            let newbie = new UserSchema({ name: name, email: email });
+            newbie.setPassword(password);
+            await newbie.save().then(function () {
+                return res.status(200).json({
+                    msg: "new user added",
+                })
+            }).catch(function (err) {
+                return res.status(400).json({
+                    msg: 'validation error - try another information',
+                });
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            msg: 'database doesn\'t exist',
         });
     }
+
+    
 });
 
 // *** --- login request ---
@@ -60,86 +68,99 @@ router.post('/login', async function (req, res, next) {
         });
     }
 
-    // retrieve user information by user email
-    const user = await UserSchema.findOne({
-        email: email,
-    });
-
-    // try login request
-    if (!user) {
-        return res.status(404).json({
-            msg: 'user is not registered',
+    try {
+        // retrieve user information by user email
+        const user = await UserSchema.findOne({
+            email: email,
         });
-    } else {
-        passport.authenticate(
-            'local',
-            {
-                session: false,
-            },
-            function (err, user) {
-                if (err) {
-                    return next(err);
-                }
-                if (user) {
-                    user.token = user.generateJWT();
 
-                    return res.json({
-                        user: user.toAuthJSON(),
-                    });
-                } else {
-                    return res.status(401).json({
-                        msg: 'invalid credential',
-                    });
+        // try login request
+        if (!user) {
+            return res.status(404).json({
+                msg: 'user is not registered',
+            });
+        } else {
+            passport.authenticate(
+                'local',
+                {
+                    session: false,
+                },
+                function (err, user) {
+                    if (err) {
+                        return next(err);
+                    }
+                    if (user) {
+                        user.token = user.generateJWT();
+
+                        return res.json({
+                            user: user.toAuthJSON(),
+                        });
+                    } else {
+                        return res.status(401).json({
+                            msg: 'invalid credential',
+                        });
+                    }
                 }
-            }
-        )(req, res, next);
+            )(req, res, next);
+        }
+    } catch (error) {
+        return res.status(500).json({
+            msg: 'database doesn\'t exist',
+        });
     }
 });
 
 // *** --- forget password request ---
 router.post('/forgetpassword', async function (req, res, next) {
-    // check if user is existing
-    const user = await UserSchema.findOne({
-        email: req.body.email,
-    }).catch(next);
-    if (user) {
-        // set token expire
-        const today = new Date();
-        const exp = new Date(today);
-        exp.setMinutes(today.getMinutes() + 300);
+    try {
+        // check if user is existing
+        const user = await UserSchema.findOne({
+            email: req.body.email,
+        }).catch(next);
 
-        // generate 4 digits and sign jwt
-        const randomMsg = Math.floor(1000 + Math.random() * 9000);
-        const token = jwt.sign(
-            {
-                msg: randomMsg,
-                email: user.email,
-                exp: parseInt(exp.getTime() / 1000),
-            },
-            process.env.SECRET
-        );
+        if (user) {
+            // set token expire
+            const today = new Date();
+            const exp = new Date(today);
+            exp.setMinutes(today.getMinutes() + 300);
 
-        // send support email to user by delivery service
-        axios.post(process.env.SMTP_URL, {
-            authuser: process.env.SMTP_USER,
-            authpass: process.env.SMTP_PASSWORD,
-            from: process.env.SMTP_USER,
-            to: user.email,
-            subject: 'Unreal Kingdom Support',
-            content: randomMsg
-        }).then((response) => {
-            return res.status(200).json({
-                msg: "Verification email sent",
-                token: token
+            // generate 4 digits and sign jwt
+            const randomMsg = Math.floor(1000 + Math.random() * 9000);
+            const token = jwt.sign(
+                {
+                    msg: randomMsg,
+                    email: user.email,
+                    exp: parseInt(exp.getTime() / 1000),
+                },
+                process.env.SECRET
+            );
+
+            // send support email to user by delivery service
+            axios.post(process.env.SMTP_URL, {
+                authuser: process.env.SMTP_USER,
+                authpass: process.env.SMTP_PASSWORD,
+                from: process.env.SMTP_USER,
+                to: user.email,
+                subject: 'Unreal Kingdom Support',
+                content: randomMsg
+            }).then((response) => {
+                return res.status(200).json({
+                    msg: "Verification email sent",
+                    token: token
+                });
+            }).catch(function (err) {
+                return res.status(400).json({
+                    msg: 'validation error - try another information',
+                });
             });
-        }).catch(function (err) {
-            return res.status(400).json({
-                msg: 'validation error - try another information',
+        } else {
+            return res.status(404).json({
+                msg: 'user is not registered',
             });
-        });
-    } else {
-        return res.status(404).json({
-            msg: 'user is not registered',
+        }
+    } catch (error) {
+        return res.status(500).json({
+            msg: 'database doesn\'t exist',
         });
     }
 });
