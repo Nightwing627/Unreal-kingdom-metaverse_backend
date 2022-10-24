@@ -26,7 +26,7 @@ router.post("/addCharacter", async function (req, res, next) {
 
   // retrieve user information by id
   const user = await UserSchema.findOne({ email: email });
-
+  const length = await CharacterSchema.count();
   // add new character if user is exisiting
   if (user) {
     const character = new CharacterSchema({
@@ -34,6 +34,7 @@ router.post("/addCharacter", async function (req, res, next) {
       race: race,
       classe: classe,
       gender: gender,
+      cindex: length,
     });
     await character.save();
 
@@ -65,6 +66,7 @@ router.post("/deleteCharacter", async function (req, res, next) {
   if (character) {
     // find character by character id and remove from database
     await CharacterSchema.findByIdAndDelete(characterid);
+    refactorCharacters();
     return res.status(200).json({
       msg: "character successfully removed",
     });
@@ -78,6 +80,8 @@ router.post("/deleteCharacter", async function (req, res, next) {
 // *** --- fetch all character informations depends on user id ---
 router.post("/getCharacters", async function (req, res, next) {
   const { email } = req.body;
+
+  refactorItems();
 
   // retrieve user information by id
   const user = await UserSchema.findOne({ email: email });
@@ -98,6 +102,7 @@ router.post("/getCharacters", async function (req, res, next) {
             race: item.race,
             gender: item.gender,
             classe: item.classe,
+            cindex: item.cindex,
           });
         });
 
@@ -265,6 +270,30 @@ router.post("/getLands", async function (req, res, next) {
     });
   }
 });
+
+router.post("/refactorCharacters", async function (req, res, next) {
+  refactorCharacters();
+  return res.status(200).json({
+    msg: "Refactor Items",
+  });
+});
+
+const refactorCharacters = async () => {
+  let counter = 0;
+  await CharacterSchema.find()
+    .sort({
+      createdAt: -1,
+    })
+    .then(function (items) {
+      // map all items
+      items.map((item) => {
+        item.cindex = counter;
+        item.save();
+        counter++;
+      });
+    })
+    .catch();
+};
 
 // *** --- export user router ---
 module.exports = router;

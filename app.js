@@ -8,7 +8,6 @@ const app = express();
 
 // *** --- support HTTP version of app  ---
 const http = require("http");
-const createError = require("http-errors");
 
 // *** --- support mongoose for database connect ---
 const mongoose = require("mongoose");
@@ -33,6 +32,8 @@ require("./models/WalletSchema");
 require("./models/NFTSchema");
 require("./models/ItemSchema");
 require("./models/LandSchema");
+require("./models/AdsSchema");
+require("./models/AdminSchema");
 require("./config/passport");
 
 // *** --- implement cors ---
@@ -73,7 +74,7 @@ app.use(function (req, res, next) {
 
 // *** --- connect to the database and track errors if in dev mode ---
 mongoose.connect(
-  process.env.DB_CLOUD_CONNECTION,
+  process.env.DB_CONNECTION,
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
@@ -101,10 +102,6 @@ app.use(function (err, req, res) {
     },
   });
 });
-
-console.log(`port is ${process.env.PORT}`, )
-console.log(`API base is ${process.env.REACT_APP_API_URL}`)
-console.log(`DB connection is ${process.env.DB_CLOUD_CONNECTION}`)
 
 //*** --- binds and listens for connections on the specific host and port ---
 http.createServer(app).listen(process.env.PORT);
