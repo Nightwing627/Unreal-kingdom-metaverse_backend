@@ -318,7 +318,7 @@ router.post("/getallnfts", async function (req, res, next) {
 
     // if wallet is valid and existing in the db
     if (valid) {
-      const chain = EvmChain.GOERLI;
+      const chain = EvmChain.ETHEREUM;
 
       // start moralis server with API key
       await Moralis.start({
