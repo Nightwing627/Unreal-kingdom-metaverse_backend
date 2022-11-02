@@ -10,7 +10,9 @@ const router = require("express").Router();
 const auth = require("../middleware/auth");
 const UserSchema = mongoose.model("UserSchema");
 const WalletSchema = mongoose.model("WalletSchema");
+const WhitelistSchema = mongoose.model("WhitelistSchema");
 const NFTSchema = mongoose.model("NFTSchema");
+const TransactionSchema = mongoose.model("TransactionSchema");
 const ObjectID = require("mongodb").ObjectId;
 const WAValidator = require("wallet-address-validator");
 
@@ -18,37 +20,44 @@ require("dotenv/config");
 
 // *** --- add user wallet ---
 router.post("/updateuserwallet", async function (req, res, next) {
-  const { userid, wallet } = req.body;
+  const { email, wallet } = req.body;
 
   // check if request body is empty or validated
-  if (!userid || !ObjectID.isValid(userid) || !wallet) {
+  if (!email || !wallet) {
     return res.status(400).json({
       msg: "validation error - try another information",
     });
   }
 
   // retrieve user information by id
-  const user = await UserSchema.findById(userid);
+  const user = await UserSchema.findOne({ email: email });
 
   // add user wallet information if user is existing
   if (user) {
     // check if wallet address is valid and not existing in db
     const valid = WAValidator.validate(wallet, "ethereum");
-    const item = await WalletSchema.findOne({ wallet: wallet });
+    const item = await WalletSchema.findOne({ email: email });
 
+    if (!valid) {
+      return res.status(400).json({
+        msg: "validation error - wallet address is not valid",
+      });
+    }
     // update wallet information if user and wallet are valid
-    if (valid && item == null) {
+    if (item == null) {
       // update database by new wallet and userid
-      const newWallet = new WalletSchema({ userid: userid, wallet: wallet });
+      const newWallet = new WalletSchema({ email: email, wallet: wallet });
       await newWallet.save();
 
       return res.status(200).json({
-        msg: "wallet successfully updated",
+        msg: "wallet successfully added",
       });
     } else {
-      // when request informations are incorrect
-      return res.status(400).json({
-        msg: "validation error - wallet address is not valid",
+      item.wallet = wallet;
+      await item.save();
+
+      return res.status(200).json({
+        msg: "wallet successfully updated",
       });
     }
   } else {
@@ -59,81 +68,209 @@ router.post("/updateuserwallet", async function (req, res, next) {
   }
 });
 
+/// *** --- get all wallet request ---
+router.post("/getAllWallets", async function (req, res, next) {
+  WalletSchema.find()
+    .then(function (wallets) {
+      let response = [];
+      wallets.map((item) => {
+        response.push({
+          uid: item._id,
+          email: item.email,
+          wallet: item.wallet,
+        });
+      });
+      return res.status(200).json({
+        msg: "retrieved all characters",
+        wallets: response,
+      });
+    })
+    .catch(next);
+});
+
+/// *** --- get all whitelist wallet request ---
+router.post("/getAllWhitelist", async function (req, res, next) {
+  WhitelistSchema.find()
+    .then(function (wallets) {
+      let response = [];
+      wallets.map((item) => {
+        response.push({
+          uid: item._id,
+          email: item.email,
+          wallet: item.wallet,
+        });
+      });
+      return res.status(200).json({
+        msg: "retrieved all characters",
+        wallets: response,
+      });
+    })
+    .catch(next);
+});
+
+// *** --- check if wallet is whitelist ---
+router.post("/checkwhitelist", async function (req, res, next) {
+  const { wallet } = req.body;
+
+  // check if request body is empty or validated
+  if (!wallet) {
+    return res.status(400).json({
+      msg: "validation error - try another information",
+    });
+  }
+
+  // retrieve user information by id
+  const user = await WhitelistSchema.findOne({ wallet: wallet });
+
+  // if whitelist is existing
+  if (user) {
+    return res.status(200).json({
+      msg: "valid whitelist",
+    });
+  } else {
+    // retrieve message when whitelist is not existing
+    return res.status(403).json({
+      msg: "wallet is not existing",
+    });
+  }
+});
+
+// *** --- delete whitelist account ---
+router.post("/deletewhitelist", async function (req, res, next) {
+  const { wallet } = req.body;
+
+  // check if request body is empty or validated
+  if (!wallet) {
+    return res.status(400).json({
+      msg: "validation error - try another information",
+    });
+  }
+
+  // retrieve user information by id
+  const user = await WhitelistSchema.findOne({ wallet: wallet });
+
+  // if whitelist is existing
+  if (user) {
+    await WhitelistSchema.findOneAndDelete({ wallet: wallet });
+    return res.status(200).json({
+      msg: "successfully remove whitelist wallet",
+    });
+  } else {
+    // retrieve message when whitelist is not existing
+    return res.status(403).json({
+      msg: "wallet is not existing",
+    });
+  }
+});
+
+// *** --- add user wallet ---
+router.post("/updatewhitelist", async function (req, res, next) {
+  const { email, wallet } = req.body;
+
+  // check if request body is empty or validated
+  if (!email || !wallet) {
+    return res.status(400).json({
+      msg: "validation error - try another information",
+    });
+  }
+
+  // retrieve user information by id
+  const user = await WhitelistSchema.findOne({ wallet: wallet });
+
+  // add user wallet information if user is existing
+  if (!user) {
+    // check if wallet address is valid and not existing in db
+    const valid = WAValidator.validate(wallet, "ethereum");
+
+    if (!valid) {
+      return res.status(400).json({
+        msg: "validation error - wallet address is not valid",
+      });
+    }
+
+    const whitelist = new WhitelistSchema({ email: email, wallet: wallet });
+    await whitelist.save();
+
+    return res.status(200).json({
+      msg: "new whitelist successfully added",
+    });
+  } else {
+    // retrieve message when user is not existing
+    return res.status(403).json({
+      msg: "wallet already existing",
+    });
+  }
+});
+
 // *** --- add valid NFTs to the database ---
 router.post("/updatenftinfo", async function (req, res, next) {
   const {
-    token_address,
-    token_id,
-    amount,
-    owner_of,
-    token_hash,
-    contract_type,
     name,
-    symbol,
-    token_uri,
+    description,
+    nftAddress,
+    tokenId,
+    price,
+    marketFees,
+    tokenURI,
   } = req.body;
 
   // check if request body is empty
   if (
-    !token_address ||
-    !token_id ||
-    !amount ||
-    !owner_of ||
-    !token_hash ||
-    !contract_type ||
+    !nftAddress ||
+    !tokenId ||
+    !price ||
+    !marketFees ||
+    !tokenURI ||
     !name ||
-    !symbol ||
-    !token_uri ||
-    !WAValidator.validate(token_address, "ethereum") ||
-    !WAValidator.validate(owner_of, "ethereum")
+    !description ||
+    !WAValidator.validate(nftAddress, "ethereum")
   ) {
     return res.status(400).json({
       msg: "validation error - try another information",
     });
   }
 
-  // retrieve nft information token_address
-  let nft = await NFTSchema.findOne({ token_address: token_address });
+  // create new db field by request information
+  const newNft = new NFTSchema({
+    nftAddress: nftAddress,
+    tokenId: tokenId,
+    price: price,
+    marketFees: marketFees,
+    tokenURI: tokenURI,
+    name: name,
+    description: description,
+  });
 
-  // create or update nft information
-  if (nft) {
-    // update existing db field with new information
-    nft.token_id = token_id;
-    nft.amount = amount;
-    nft.owner_of = owner_of;
-    nft.token_hash = token_hash;
-    nft.contract_type = contract_type;
-    nft.name = "trying for a new new new new opportunity";
-    nft.symbol = symbol;
-    nft.token_uri = token_uri;
+  // add db field with new NFT information
+  await newNft.save();
 
-    // store db field with updated information
-    await nft.save();
+  return res.status(200).json({
+    msg: "successfully add new NFT information to the db",
+  });
+});
 
-    return res.status(200).json({
-      msg: "successfully update NFT information to the db",
-    });
-  } else {
-    // create new db field by request information
-    const newNft = new NFTSchema({
-      token_address: token_address,
-      token_id: token_id,
-      amount: amount,
-      owner_of: owner_of,
-      token_hash: token_hash,
-      contract_type: contract_type,
-      name: name,
-      symbol: symbol,
-      token_uri: token_uri,
-    });
-
-    // add db field with new NFT information
-    await newNft.save();
-
-    return res.status(200).json({
-      msg: "successfully add new NFT information to the db",
-    });
-  }
+/// *** --- get all minted nfts ---
+router.post("/getAllMints", async function (req, res, next) {
+  NFTSchema.find()
+    .then(function (nfts) {
+      let response = [];
+      nfts.map((item) => {
+        response.push({
+          nftAddress: item.nftAddress,
+          tokenId: item.tokenId,
+          price: item.price,
+          marketFees: item.marketFees,
+          name: item.name,
+          description: item.description,
+          tokenURI: item.tokenURI,
+        });
+      });
+      return res.status(200).json({
+        msg: "retrieved all nfts",
+        nfts: response,
+      });
+    })
+    .catch(next);
 });
 
 // *** --- remove NFT info from the database ---
@@ -181,7 +318,7 @@ router.post("/getallnfts", async function (req, res, next) {
 
     // if wallet is valid and existing in the db
     if (valid) {
-      const chain = EvmChain.ETHEREUM;
+      const chain = EvmChain.GOERLI;
 
       // start moralis server with API key
       await Moralis.start({
@@ -207,6 +344,74 @@ router.post("/getallnfts", async function (req, res, next) {
       });
     }
   }
+});
+
+/// *** --- get all transactions request ---
+router.post("/getAllTransactions", async function (req, res, next) {
+  TransactionSchema.find()
+    .then(function (items) {
+      let response = [];
+      items.map((item) => {
+        response.push({
+          uid: item._id,
+          blockHash: item.blockHash,
+          blockNumber: item.blockNumber,
+          from: item.from,
+          to: item.to,
+          transactionHash: item.transactionHash,
+          transactionIndex: item.transactionIndex,
+          type: item.type,
+        });
+      });
+      return res.status(200).json({
+        msg: "retrieved all nfts",
+        transactions: response,
+      });
+    })
+    .catch(next);
+});
+
+// *** --- add new transaction request ---
+router.post("/addTransaction", async function (req, res, next) {
+  const {
+    blockHash,
+    blockNumber,
+    from,
+    to,
+    transactionHash,
+    transactionIndex,
+    type,
+  } = req.body;
+
+  // check if request body is empty or validated
+  if (
+    !blockHash ||
+    !blockNumber ||
+    !from ||
+    !to ||
+    !transactionHash ||
+    !transactionIndex ||
+    !type
+  ) {
+    return res.status(400).json({
+      msg: "validation error",
+    });
+  }
+
+  const transaction = new TransactionSchema({
+    blockHash: blockHash,
+    blockNumber: blockNumber,
+    from: from,
+    to: to,
+    transactionHash: transactionHash,
+    transactionIndex: transactionIndex,
+    type: type,
+  });
+
+  await transaction.save();
+  return res.status(200).json({
+    msg: "new transaction added",
+  });
 });
 
 // *** --- export wallet router ---

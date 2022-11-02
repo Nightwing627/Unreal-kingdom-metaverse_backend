@@ -81,7 +81,7 @@ router.post("/deleteCharacter", async function (req, res, next) {
 router.post("/getCharacters", async function (req, res, next) {
   const { email } = req.body;
 
-  refactorItems();
+  refactorCharacters();
 
   // retrieve user information by id
   const user = await UserSchema.findOne({ email: email });
@@ -120,6 +120,29 @@ router.post("/getCharacters", async function (req, res, next) {
   }
 });
 
+/// *** --- get all characters request ---
+router.post("/getAllCharacters", async function (req, res, next) {
+  CharacterSchema.find()
+    .then(function (characters) {
+      let response = [];
+      characters.map((item) => {
+        response.push({
+          uid: item._id,
+          race: item.race,
+          classe: item.classe,
+          gender: item.gender,
+          cindex: item.cindex,
+          userid: item.userid,
+        });
+      });
+      return res.status(200).json({
+        msg: "retrieved all characters",
+        characters: response,
+      });
+    })
+    .catch(next);
+});
+
 // *** --- add new item request ---
 router.post("/addItem", async function (req, res, next) {
   const { email, itemid, itemtype, specifictype, equipmenttype } = req.body;
@@ -155,6 +178,35 @@ router.post("/addItem", async function (req, res, next) {
   }
 });
 
+// *** --- delete existing item request ---
+router.post("/deleteItem", async function (req, res, next) {
+  const { itemid } = req.body;
+
+  // check if request body is empty or validated
+  if (!itemid || !ObjectID.isValid(itemid)) {
+    return res.status(400).json({
+      msg: "wrong item id",
+    });
+  }
+
+  // retrieve item information by id
+  const item = await ItemSchema.findById(itemid);
+
+  // delete item if it is existing
+  if (item) {
+    // find item by item id and remove from database
+    await ItemSchema.findByIdAndDelete(itemid);
+
+    return res.status(200).json({
+      msg: "item successfully removed",
+    });
+  } else {
+    return res.status(403).json({
+      msg: "item is not exisiting",
+    });
+  }
+});
+
 // *** --- fetch all item informations depends on user id ---
 router.post("/getItems", async function (req, res, next) {
   const { email } = req.body;
@@ -175,6 +227,7 @@ router.post("/getItems", async function (req, res, next) {
         // map all items under user id
         items.map((item) => {
           response.push({
+            uid: item._id,
             itemid: item.itemid,
             itemtype: item.itemtype,
             specifictype: item.specifictype,
@@ -194,6 +247,29 @@ router.post("/getItems", async function (req, res, next) {
       msg: "user is not exisiting",
     });
   }
+});
+
+/// *** --- get all items request ---
+router.post("/getAllItems", async function (req, res, next) {
+  ItemSchema.find()
+    .then(function (items) {
+      let response = [];
+      items.map((item) => {
+        response.push({
+          uid: item._id,
+          itemid: item.itemid,
+          itemtype: item.itemtype,
+          equipmenttype: item.equipmenttype,
+          specifictype: item.specifictype,
+          user: item.user,
+        });
+      });
+      return res.status(200).json({
+        msg: "retrieved all characters",
+        items: response,
+      });
+    })
+    .catch(next);
 });
 
 // *** --- add new land request ---

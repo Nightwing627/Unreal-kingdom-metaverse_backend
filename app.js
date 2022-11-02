@@ -34,6 +34,8 @@ require("./models/ItemSchema");
 require("./models/LandSchema");
 require("./models/AdsSchema");
 require("./models/AdminSchema");
+require("./models/WhitelistSchema");
+require("./models/TransactionSchema");
 require("./config/passport");
 
 // *** --- implement cors ---
